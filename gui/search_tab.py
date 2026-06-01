@@ -85,14 +85,14 @@ class SearchTab:
         header = [["Filename", "Extension", "Size", "Modified", "Path", "Score"]]
         self.result_table.destroy()
         self.result_table = CTkTable(
-            self.result_table.master,
+            self.result_scroll,
             row=1, column=6, values=header,
             header_color=("gray75", "gray25"),
             hover_color=("gray85", "gray30"),
             font=("", 11), wraplength=300,
             padx=4, pady=2, corner_radius=4,
         )
-        self.result_table.pack(fill="both", expand=True, padx=5, pady=3)
+        self.result_table.pack(fill="x", padx=5, pady=3)
         self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
         self.result_table.bind("<Double-1>", self._on_result_double_click)
         self.page_label.configure(text="Page 1")
@@ -181,8 +181,11 @@ class SearchTab:
         result_frame = ctk.CTkFrame(tab)
         result_frame.pack(fill="both", expand=True, padx=10, pady=3)
 
+        self.result_scroll = ctk.CTkScrollableFrame(result_frame, label_text="")
+        self.result_scroll.pack(fill="both", expand=True, padx=0, pady=0)
+
         self.result_table = CTkTable(
-            result_frame,
+            self.result_scroll,
             row=1,
             column=6,
             values=[["Filename", "Extension", "Size", "Modified", "Path", "Score"]],
@@ -194,7 +197,7 @@ class SearchTab:
             pady=2,
             corner_radius=4,
         )
-        self.result_table.pack(fill="both", expand=True, padx=5, pady=3)
+        self.result_table.pack(fill="x", padx=5, pady=3)
         self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
         self.result_table.bind("<Double-1>", self._on_result_double_click)
 
@@ -218,10 +221,11 @@ class SearchTab:
         self.export_btn = ctk.CTkButton(nav_frame, text="Export CSV", width=90, command=self._export_csv)
         self.export_btn.pack(side="right", padx=5)
 
-        ctk.CTkButton(
+        self.preview_toggle_btn = ctk.CTkButton(
             nav_frame, text="Hide Preview" if self.preview_visible else "Show Preview",
             width=100, command=self._toggle_preview,
-        ).pack(side="right", padx=5)
+        )
+        self.preview_toggle_btn.pack(side="right", padx=5)
 
     def _build_preview(self, tab):
         self.preview_frame = ctk.CTkFrame(tab, height=180)
@@ -240,23 +244,14 @@ class SearchTab:
         self.preview_text.pack(fill="both", expand=True, padx=5, pady=3)
         self.preview_text.configure(state="disabled")
 
-    def _toggle_preview(self, btn=None):
+    def _toggle_preview(self):
         self.preview_visible = not self.preview_visible
         if self.preview_visible:
             self.preview_frame.pack(fill="x", padx=10, pady=(0, 3))
-            btn_text = "Hide Preview"
+            self.preview_toggle_btn.configure(text="Hide Preview")
         else:
             self.preview_frame.pack_forget()
-            btn_text = "Show Preview"
-        if btn:
-            btn.configure(text=btn_text)
-        else:
-            for child in self.result_table.master.winfo_children():
-                if isinstance(child, ctk.CTkFrame):
-                    for c in child.winfo_children():
-                        if isinstance(c, ctk.CTkButton) and c.cget("text") in ("Hide Preview", "Show Preview"):
-                            c.configure(text=btn_text)
-                            break
+            self.preview_toggle_btn.configure(text="Show Preview")
 
     def _hide_preview(self):
         self.preview_filename.configure(text="")
@@ -331,7 +326,7 @@ class SearchTab:
 
         self.result_table.destroy()
         self.result_table = CTkTable(
-            self.result_table.master,
+            self.result_scroll,
             row=len(data),
             column=6,
             values=data,
@@ -343,7 +338,7 @@ class SearchTab:
             pady=2,
             corner_radius=4,
         )
-        self.result_table.pack(fill="both", expand=True, padx=5, pady=3)
+        self.result_table.pack(fill="x", padx=5, pady=3)
         self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
         self.result_table.bind("<Double-1>", self._on_result_double_click)
 
