@@ -1,0 +1,86 @@
+A serious file indexer built with Apache Lucene usually needs much more than just keyword search. Common features are grouped into these areas:
+
+Core Search Features
+Full-text search
+Fuzzy search (helo → hello)
+Wildcard search (doc*)
+Regex search
+Phrase search ("machine learning")
+Boolean operators (AND, OR, NOT)
+Ranking/relevance scoring
+Highlight matching text in results
+Auto-complete / suggestions
+Synonym support
+File Handling
+Recursive directory scanning
+Multi-format support:
+TXT
+PDF
+DOCX
+XLSX
+PPTX
+HTML
+JSON
+XML
+source code files
+Metadata extraction:
+filename
+size
+creation date
+modified date
+author
+MIME type
+Binary file detection
+Archive indexing:
+ZIP
+RAR
+TAR
+Index Management
+Incremental indexing
+Real-time indexing
+File system watcher
+Delete removed files from index
+Re-index changed files only
+Index compression
+Index sharding for large datasets
+Filtering & Querying
+Filter by:
+extension
+size
+date
+folder
+author
+Sorting:
+relevance
+date
+size
+filename
+Faceted search (group by file type/date/etc.)
+Performance Features
+Parallel indexing
+Multithreaded search
+Caching
+Memory optimization
+Large dataset support
+SSD-aware optimizations
+Security & Permissions
+Respect filesystem permissions
+User-based access control
+Encrypted index support
+Ignore hidden/system files
+Exclusion rules
+Developer / Power Features
+Query parser
+REST API
+CLI interface
+Plugin system
+Export search results
+Search analytics/logging
+Custom scoring algorithms
+UX Features
+Preview file contents
+Open file directly from results
+Recent searches
+Saved searches
+Dark/light mode
+Search history

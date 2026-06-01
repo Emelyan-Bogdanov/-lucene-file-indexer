@@ -129,7 +129,7 @@ class IndexTab:
                 for i, sd in enumerate(dirs):
                     if os.path.isdir(sd):
                         result = indexer.scan_directory(sd, parallel=self.config.get("parallel_indexing", True))
-                        self.tab.after(0, lambda: self._log(f"  {sd}: {result['indexed']} indexed, {result['skipped']} skipped"))
+                        self.tab.after(0, lambda d=sd, r=result: self._log(f"  {d}: {r['indexed']} indexed, {r['skipped']} skipped"))
                     else:
                         self.tab.after(0, lambda d=sd: self._log(f"  {d}: directory not found"))
                     pct = (i + 1) / total_dirs

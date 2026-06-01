@@ -1,3 +1,12 @@
-pylucene>=9.0.0
-tika>=2.0.0
-Pillow>=10.0.0
+whoosh>=2.7.4
+watchdog>=3.0.0
+pdfplumber>=0.10.0
+python-docx>=1.1.0
+openpyxl>=3.1.0
+python-pptx>=0.6.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+pyyaml>=6.0
+rich>=13.0.0
+customtkinter>=5.2.0
+CTkTable>=1.1.0

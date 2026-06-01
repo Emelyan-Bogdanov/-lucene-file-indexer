@@ -25,6 +25,8 @@ class SearchTab:
 
     def _open_indexer(self):
         try:
+            if self.indexer:
+                self.indexer.close()
             self.indexer = FileIndexer(self.config["index_dir"], self.config)
             self.qe = QueryEngine(self.indexer.ix)
         except Exception:
@@ -41,8 +43,9 @@ class SearchTab:
         self._bind_global_hotkeys()
 
     def _bind_global_hotkeys(self):
-        self.tab.bind_all("<Control-Return>", lambda e: self._do_search())
-        self.tab.bind_all("<Control-e>", lambda e: self._export_csv())
+        root = self.tab.winfo_toplevel()
+        root.bind("<Control-Return>", lambda e: self._do_search())
+        root.bind("<Control-e>", lambda e: self._export_csv())
 
     def _build_search_bar(self, tab):
         top = ctk.CTkFrame(tab)
@@ -79,9 +82,19 @@ class SearchTab:
         self.sort_var.set("relevance")
         self.current_results = []
         self.current_page = 1
-        self.result_table.update_values(
-            values=[["Filename", "Extension", "Size", "Modified", "Path", "Score"]]
+        header = [["Filename", "Extension", "Size", "Modified", "Path", "Score"]]
+        self.result_table.destroy()
+        self.result_table = CTkTable(
+            self.result_table.master,
+            row=1, column=6, values=header,
+            header_color=("gray75", "gray25"),
+            hover_color=("gray85", "gray30"),
+            font=("", 11), wraplength=300,
+            padx=4, pady=2, corner_radius=4,
         )
+        self.result_table.pack(fill="both", expand=True, padx=5, pady=3)
+        self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
+        self.result_table.bind("<Double-1>", self._on_result_double_click)
         self.page_label.configure(text="Page 1")
         self.total_label.configure(text="")
         self.prev_btn.configure(state="disabled")
@@ -111,10 +124,10 @@ class SearchTab:
     def _show_suggestions(self, suggestions):
         self._hide_suggestions()
         toplevel = self.search_entry.winfo_toplevel()
-        self.suggest_dropdown = ctk.CTkFrame(toplevel, corner_radius=6, border_width=1)
+        self.suggest_dropdown = ctk.CTkFrame(toplevel, corner_radius=6, border_width=1, width=self.search_entry.winfo_width())
         x = self.search_entry.winfo_rootx()
         y = self.search_entry.winfo_rooty() + self.search_entry.winfo_height()
-        self.suggest_dropdown.place(x=x, y=y, width=self.search_entry.winfo_width())
+        self.suggest_dropdown.place(x=x, y=y)
 
         canvas = ctk.CTkScrollableFrame(self.suggest_dropdown, fg_color="transparent", height=min(len(suggestions) * 32, 200))
         canvas.pack(fill="both", expand=True)
@@ -175,9 +188,14 @@ class SearchTab:
             values=[["Filename", "Extension", "Size", "Modified", "Path", "Score"]],
             header_color=("gray75", "gray25"),
             hover_color=("gray85", "gray30"),
+            font=("", 11),
             wraplength=300,
+            padx=4,
+            pady=2,
+            corner_radius=4,
         )
         self.result_table.pack(fill="both", expand=True, padx=5, pady=3)
+        self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
         self.result_table.bind("<Double-1>", self._on_result_double_click)
 
         nav_frame = ctk.CTkFrame(result_frame, height=36)
@@ -216,6 +234,7 @@ class SearchTab:
         ctk.CTkLabel(header, text="Preview", font=ctk.CTkFont(size=12, weight="bold")).pack(side="left", padx=5)
         self.preview_filename = ctk.CTkLabel(header, text="", font=ctk.CTkFont(size=10))
         self.preview_filename.pack(side="left", padx=10)
+        ctk.CTkButton(header, text="Show in Folder", width=100, command=self._reveal_selected_in_folder).pack(side="right", padx=5)
 
         self.preview_text = ctk.CTkTextbox(self.preview_frame, wrap="word", font=ctk.CTkFont(size=11))
         self.preview_text.pack(fill="both", expand=True, padx=5, pady=3)
@@ -258,7 +277,7 @@ class SearchTab:
 
     def _execute_search(self):
         query = self.search_var.get().strip()
-        if not query or not self.qe:
+        if not query:
             return
 
         self._open_indexer()
@@ -310,7 +329,23 @@ class SearchTab:
                 mod_str, r.get("folder", ""), f"{r['score']:.2f}",
             ])
 
-        self.result_table.update_values(values=data)
+        self.result_table.destroy()
+        self.result_table = CTkTable(
+            self.result_table.master,
+            row=len(data),
+            column=6,
+            values=data,
+            header_color=("gray75", "gray25"),
+            hover_color=("gray85", "gray30"),
+            font=("", 11),
+            wraplength=300,
+            padx=4,
+            pady=2,
+            corner_radius=4,
+        )
+        self.result_table.pack(fill="both", expand=True, padx=5, pady=3)
+        self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
+        self.result_table.bind("<Double-1>", self._on_result_double_click)
 
         total_pages = max(1, (total + self.per_page - 1) // self.per_page)
         self.page_label.configure(text=f"Page {self.current_page}/{total_pages}")
@@ -327,11 +362,33 @@ class SearchTab:
         self.current_page += 1
         self._execute_search()
 
-    def _on_result_double_click(self, event=None):
+    def _on_result_click(self, event=None):
         selected = self.result_table.get_selected_row()
         if selected and selected > 0 and selected - 1 < len(self.current_results):
             result = self.current_results[selected - 1]
             self._show_preview(result)
+
+    def _on_result_double_click(self, event=None):
+        selected = self.result_table.get_selected_row()
+        if selected and selected > 0 and selected - 1 < len(self.current_results):
+            result = self.current_results[selected - 1]
+            self._reveal_in_explorer(result["path"])
+
+    def _reveal_in_explorer(self, filepath):
+        if not filepath or not os.path.exists(filepath):
+            self.status_bar.configure(text="File not found.")
+            return
+        import subprocess
+        import sys
+        try:
+            if sys.platform == "win32":
+                subprocess.run(["explorer", f"/select,{os.path.normpath(filepath)}"])
+            elif sys.platform == "darwin":
+                subprocess.run(["open", "-R", filepath])
+            else:
+                subprocess.run(["xdg-open", os.path.dirname(filepath)])
+        except Exception as e:
+            self.status_bar.configure(text=f"Error opening folder: {e}")
 
     def _show_preview(self, result):
         filepath = result["path"]
@@ -361,6 +418,10 @@ class SearchTab:
                 subprocess.run(["open", filepath])
             else:
                 subprocess.run(["xdg-open", filepath])
+
+    def _reveal_selected_in_folder(self):
+        filepath = self.preview_filename.cget("text")
+        self._reveal_in_explorer(filepath)
 
     def _save_search(self):
         query = self.search_var.get().strip()

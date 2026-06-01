@@ -1,0 +1,3 @@
+filename,path,extension,size,modified,score
+requirements.txt,.\requirements.txt,.txt,163,2026-05-22T16:46:35.282245,4.81952301543111
+main.py,.\main.py,.py,5709,2026-05-22T16:48:25.645198,2.788367630578273
