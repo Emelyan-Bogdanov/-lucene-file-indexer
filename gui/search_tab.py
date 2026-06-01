@@ -8,6 +8,7 @@ from CTkTable import CTkTable
 from indexer.engine import FileIndexer
 from indexer.document_parser import extract_text
 from search.query import QueryEngine
+from search.highlighter import highlight_text
 from utils.history import add_to_history, save_search
 
 
@@ -18,6 +19,7 @@ class SearchTab:
         self.indexer = None
         self.qe = None
         self.current_results = []
+        self.current_query = ""
         self.current_page = 1
         self.per_page = config.get("results_per_page", 20)
         self.preview_visible = True
@@ -181,7 +183,7 @@ class SearchTab:
         result_frame = ctk.CTkFrame(tab)
         result_frame.pack(fill="both", expand=True, padx=10, pady=3)
 
-        self.result_scroll = ctk.CTkScrollableFrame(result_frame, label_text="")
+        self.result_scroll = ctk.CTkScrollableFrame(result_frame)
         self.result_scroll.pack(fill="both", expand=True, padx=0, pady=0)
 
         self.result_table = CTkTable(
@@ -304,6 +306,7 @@ class SearchTab:
 
                 add_to_history(query)
                 self.current_results = results
+                self.current_query = query
                 self.tab.after(0, lambda t=total: self._display_results(t))
 
                 self.tab.after(0, lambda: self.status_bar.configure(text=f"Found {total} results for '{query}'"))
@@ -342,6 +345,18 @@ class SearchTab:
         self.result_table.bind("<ButtonRelease-1>", self._on_result_click)
         self.result_table.bind("<Double-1>", self._on_result_double_click)
 
+        ext_colors = self.config.get("extension_colors", {})
+        for i, r in enumerate(self.current_results):
+            ext = r.get("extension", "")
+            color = ext_colors.get(ext)
+            if color:
+                cell = self.result_table.frame.get((i + 1, 1))
+                if cell:
+                    try:
+                        cell.configure(fg_color=color)
+                    except Exception:
+                        pass
+
         total_pages = max(1, (total + self.per_page - 1) // self.per_page)
         self.page_label.configure(text=f"Page {self.current_page}/{total_pages}")
         self.total_label.configure(text=f"({total} total)")
@@ -358,15 +373,17 @@ class SearchTab:
         self._execute_search()
 
     def _on_result_click(self, event=None):
-        selected = self.result_table.get_selected_row()
-        if selected and selected > 0 and selected - 1 < len(self.current_results):
-            result = self.current_results[selected - 1]
+        sel = self.result_table.get_selected_row()
+        row_index = sel["row_index"]
+        if row_index is not None and row_index > 0 and row_index - 1 < len(self.current_results):
+            result = self.current_results[row_index - 1]
             self._show_preview(result)
 
     def _on_result_double_click(self, event=None):
-        selected = self.result_table.get_selected_row()
-        if selected and selected > 0 and selected - 1 < len(self.current_results):
-            result = self.current_results[selected - 1]
+        sel = self.result_table.get_selected_row()
+        row_index = sel["row_index"]
+        if row_index is not None and row_index > 0 and row_index - 1 < len(self.current_results):
+            result = self.current_results[row_index - 1]
             self._reveal_in_explorer(result["path"])
 
     def _reveal_in_explorer(self, filepath):
@@ -393,7 +410,15 @@ class SearchTab:
 
         text = extract_text(filepath)
         if text:
-            self.preview_text.insert("1.0", text[:2000])
+            if self.config.get("highlight_matches", True) and self.current_query:
+                query_terms = self.current_query.split()
+                highlighted = highlight_text(text[:5000], query_terms, context_chars=120)
+                if highlighted:
+                    self.preview_text.insert("1.0", highlighted[:3000])
+                else:
+                    self.preview_text.insert("1.0", text[:2000])
+            else:
+                self.preview_text.insert("1.0", text[:2000])
         else:
             self.preview_text.insert("1.0", "(No preview available)")
 

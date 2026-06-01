@@ -28,6 +28,19 @@ class QueryEngine:
         existing = list(self.ix.schema.names())
         return [f for f in all_fields if f in existing]
 
+    def _smart_query_string(self, query_str):
+        words = query_str.split()
+        parts = []
+        for w in words:
+            if any(c in w for c in '*~"^()'):
+                parts.append(w)
+            elif len(w) <= 3:
+                parts.append(f"{w}*")
+            else:
+                parts.append(f"*{w}*")
+                parts.append(f"{w}~1")
+        return " ".join(parts)
+
     def build_query(self, query_str, search_fields=None):
         if search_fields is None:
             search_fields = self._all_search_fields()
@@ -44,7 +57,8 @@ class QueryEngine:
         parser.add_plugin(qparser.FieldsPlugin())
         parser.add_plugin(qparser.OperatorsPlugin())
 
-        query = parser.parse(query_str)
+        enhanced = self._smart_query_string(query_str)
+        query = parser.parse(enhanced)
         return query
 
     def search(self, query_str, filters=None, sort_by=None, page=1, per_page=20):

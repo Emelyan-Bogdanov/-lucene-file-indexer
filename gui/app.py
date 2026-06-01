@@ -8,6 +8,7 @@ from gui.search_tab import SearchTab
 from gui.index_tab import IndexTab
 from gui.browse_tab import BrowseTab
 from gui.history_tab import HistoryTab
+from gui.settings_tab import SettingsTab
 from utils.config import load_config, save_config
 
 APP_VERSION = "1.0.0"
@@ -87,21 +88,25 @@ class FileIndexerGUI(ctk.CTk):
         self.index_tab = IndexTab(self.tabview, self.config)
         self.browse_tab = BrowseTab(self.tabview, self.config)
         self.history_tab = HistoryTab(self.tabview, self.config, on_search=self._history_search)
+        self.settings_tab = SettingsTab(self.tabview, self.config)
 
         self.tabview.add("Search")
         self.tabview.add("Index")
         self.tabview.add("Browse")
         self.tabview.add("History")
+        self.tabview.add("Settings")
 
         self.tabview.tab("Search").pack_forget()
         self.tabview.tab("Index").pack_forget()
         self.tabview.tab("Browse").pack_forget()
         self.tabview.tab("History").pack_forget()
+        self.tabview.tab("Settings").pack_forget()
 
         self.search_tab.build(self.tabview.tab("Search"))
         self.index_tab.build(self.tabview.tab("Index"))
         self.browse_tab.build(self.tabview.tab("Browse"))
         self.history_tab.build(self.tabview.tab("History"))
+        self.settings_tab.build(self.tabview.tab("Settings"))
 
     def _history_search(self, query):
         self.tabview.set("Search")
